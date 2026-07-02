@@ -1,0 +1,118 @@
+@import "tailwindcss";
+@source "../src/**/*.{js,jsx}";
+
+@theme {
+  /* === BRAND === */
+  --color-primary: #1B4F72;
+  --color-primary-dark: #1B2A4A;
+  --color-secondary: #2E86C1;
+  --color-accent: #8E44AD;
+
+  /* Brand tints (for subtle backgrounds, hover, focus rings) */
+  --color-primary-50: #EFF6FB;
+  --color-primary-100: #DCEDF7;
+  --color-primary-200: #B9DBEF;
+
+  /* === FINANCIAL SEMANTIC === */
+  --color-income: #27AE60;
+  --color-income-bg: #F0FDF4;
+  --color-expense: #E74C3C;
+  --color-expense-bg: #FEF2F2;
+
+  /* === STATUS SEMANTIC === */
+  --color-success: #15803D;
+  --color-success-bg: #F0FDF4;
+  --color-success-border: #BBF7D0;
+  --color-warning: #B45309;
+  --color-warning-bg: #FFFBEB;
+  --color-warning-border: #FDE68A;
+  --color-warning-strong: #F39C12;     /* original brand warning, when needed as fill */
+  --color-error: #B91C1C;
+  --color-error-bg: #FEF2F2;
+  --color-error-border: #FECACA;
+  --color-info: #1D4ED8;
+  --color-info-bg: #EFF6FF;
+  --color-info-border: #BFDBFE;
+
+  /* === RISK (aliases) === */
+  --color-risk-low: var(--color-success);
+  --color-risk-low-bg: var(--color-success-bg);
+  --color-risk-medium: var(--color-warning);
+  --color-risk-medium-bg: var(--color-warning-bg);
+  --color-risk-high: var(--color-error);
+  --color-risk-high-bg: var(--color-error-bg);
+
+  /* === NEUTRALS === */
+  --color-surface: #FFFFFF;
+  --color-surface-subtle: #FAFBFC;
+  --color-page: #F5F6F8;
+  --color-border: #E4E9EF;
+  --color-border-subtle: #EDEFF2;
+  --color-divider: #F0F2F5;
+  --color-text: #111827;
+  --color-text-secondary: #4B5563;
+  --color-text-muted: #6B7280;
+  --color-text-disabled: #9CA3AF;
+
+  /* === SIDEBAR (special context) === */
+  --color-sidebar-bg: #1B2A4A;
+  --color-sidebar-text: #CBD5E1;
+  --color-sidebar-text-active: #FFFFFF;
+  --color-sidebar-hover: rgba(255, 255, 255, 0.06);
+
+  /* === RADII === */
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 14px;
+  --radius-2xl: 18px;
+  --radius-full: 9999px;
+
+  /* === SHADOWS (Mercury-style subtle elevation) === */
+  --shadow-xs: 0 1px 2px 0 rgb(15 23 42 / 0.04);
+  --shadow-sm: 0 1px 2px 0 rgb(15 23 42 / 0.04), 0 1px 3px 0 rgb(15 23 42 / 0.06);
+  --shadow-md: 0 2px 4px -1px rgb(15 23 42 / 0.04), 0 4px 6px -1px rgb(15 23 42 / 0.06);
+  --shadow-lg: 0 4px 6px -2px rgb(15 23 42 / 0.05), 0 10px 15px -3px rgb(15 23 42 / 0.06);
+  --shadow-card: 0 1px 2px 0 rgb(15 23 42 / 0.03), 0 0 0 1px rgb(15 23 42 / 0.04);
+  --shadow-card-hover: 0 4px 12px -2px rgb(15 23 42 / 0.08), 0 0 0 1px rgb(15 23 42 / 0.05);
+  --shadow-focus-ring: 0 0 0 3px rgb(46 134 193 / 0.15);
+
+  /* === MOTION === */
+  --duration-fast: 150ms;
+  --duration-base: 200ms;
+  --duration-slow: 300ms;
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* === GLOBAL KEYFRAMES === */
+@keyframes af-shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+@keyframes af-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes af-fade-in-fast {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* === UTILITY CLASSES === */
+.af-page-enter {
+  animation: af-fade-in var(--duration-base) var(--ease-out);
+}
+
+.af-stagger-1 { animation-delay: 0ms; }
+.af-stagger-2 { animation-delay: 40ms; }
+.af-stagger-3 { animation-delay: 80ms; }
+.af-stagger-4 { animation-delay: 120ms; }

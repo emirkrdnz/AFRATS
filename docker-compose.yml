@@ -1,0 +1,231 @@
+# ============================================
+# AFRATS - Docker Compose
+# Konum: AFRATS/docker-compose.yml
+# Kullanım: docker-compose up -d
+# ============================================
+
+services:
+
+  # ===================== ALTYAPI =====================
+
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: afrats-sqlserver
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_SA_PASSWORD: "${SA_PASSWORD}"
+      MSSQL_PID: "Developer"
+    ports:
+      - "14333:1433"
+    volumes:
+      - sqlserver_data:/var/opt/mssql
+    healthcheck:
+      test: /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P "${SA_PASSWORD}" -C -Q "SELECT 1" || exit 1
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    networks:
+      - afrats-network
+
+  rabbitmq:
+    image: rabbitmq:3.13-management
+    container_name: afrats-rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: "${RABBITMQ_USER}"
+      RABBITMQ_DEFAULT_PASS: "${RABBITMQ_PASS}"
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    healthcheck:
+      test: rabbitmq-diagnostics -q ping
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+    networks:
+      - afrats-network
+
+  # ===================== SERVİSLER =====================
+
+  afrats-auth:
+    build:
+      context: ./services/AuthService
+      dockerfile: Dockerfile
+    container_name: afrats-auth
+    environment:
+      ASPNETCORE_ENVIRONMENT: "Docker"
+      ASPNETCORE_URLS: "http://+:8080"
+      ConnectionStrings__DefaultConnection: "Server=afrats-sqlserver;Database=afrats_auth;User Id=sa;Password=${SA_PASSWORD};TrustServerCertificate=True;MultipleActiveResultSets=true"
+      JwtSettings__Secret: "${JWT_SECRET}"
+      JwtSettings__Issuer: "${JWT_ISSUER}"
+      JwtSettings__Audience: "${JWT_AUDIENCE}"
+      JwtSettings__AccessTokenExpirationMinutes: "15"
+      JwtSettings__RefreshTokenExpirationDays: "7"
+      ADMIN_DEFAULT_PASSWORD: "${ADMIN_DEFAULT_PASSWORD}"
+      SmtpSettings__Host: "${SMTP_HOST}"
+      SmtpSettings__Port: "${SMTP_PORT}"
+      SmtpSettings__Username: "${SMTP_USERNAME}"
+      SmtpSettings__Password: "${SMTP_PASSWORD}"
+      SmtpSettings__FromEmail: "${SMTP_FROM_EMAIL}"
+      SmtpSettings__FromName: "${SMTP_FROM_NAME}"
+    ports:
+      - "5001:8080"
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+    healthcheck:
+      test: curl -f http://localhost:8080/health || exit 1
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    networks:
+      - afrats-network
+
+  afrats-txn:
+    build:
+      context: ./services/TransactionService
+      dockerfile: Dockerfile
+    container_name: afrats-txn
+    environment:
+      ASPNETCORE_ENVIRONMENT: "Docker"
+      ASPNETCORE_URLS: "http://+:8080"
+      ConnectionStrings__DefaultConnection: "Server=afrats-sqlserver;Database=afrats_txn;User Id=sa;Password=${SA_PASSWORD};TrustServerCertificate=True;MultipleActiveResultSets=true"
+      Jwt__Secret: "${JWT_SECRET}"
+      Jwt__Issuer: "${JWT_ISSUER}"
+      Jwt__Audience: "${JWT_AUDIENCE}"
+      RabbitMQ__HostName: "afrats-rabbitmq"
+      RabbitMQ__Port: "5672"
+      RabbitMQ__UserName: "${RABBITMQ_USER}"
+      RabbitMQ__Password: "${RABBITMQ_PASS}"
+    ports:
+      - "5002:8080"
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    healthcheck:
+      test: curl -f http://localhost:8080/health || exit 1
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    networks:
+      - afrats-network
+
+  afrats-ml:
+    build:
+      context: ./services/MLService
+      dockerfile: Dockerfile
+    container_name: afrats-ml
+    environment:
+      DB_SERVER: "afrats-sqlserver"
+      DB_NAME: "afrats_ml"
+      DB_USER: "sa"
+      DB_PASSWORD: "${SA_PASSWORD}"
+      RABBITMQ_URL: "amqp://${RABBITMQ_USER}:${RABBITMQ_PASS}@afrats-rabbitmq:5672"
+      RABBITMQ_MGMT_URL:  "http://afrats-rabbitmq:15672"
+      RABBITMQ_MGMT_USER: "${RABBITMQ_USER}"
+      RABBITMQ_MGMT_PASS: "${RABBITMQ_PASS}"
+      JWT_SECRET: "${JWT_SECRET}"
+      JWT_ISSUER: "${JWT_ISSUER}"
+      JWT_AUDIENCE: "${JWT_AUDIENCE}"
+    ports:
+      - "8000:8000"
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    healthcheck:
+      test: curl -f http://localhost:8000/health || exit 1
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    networks:
+      - afrats-network
+
+  afrats-notif:
+    build:
+      context: ./services/NotificationService
+      dockerfile: Dockerfile
+    container_name: afrats-notif
+    environment:
+      ASPNETCORE_ENVIRONMENT: "Docker"
+      ASPNETCORE_URLS: "http://+:8080"
+      ConnectionStrings__DefaultConnection: "Server=afrats-sqlserver;Database=afrats_notif;User Id=sa;Password=${SA_PASSWORD};TrustServerCertificate=True;MultipleActiveResultSets=true"
+      Jwt__Secret: "${JWT_SECRET}"
+      Jwt__Issuer: "${JWT_ISSUER}"
+      Jwt__Audience: "${JWT_AUDIENCE}"
+      RabbitMq__HostName: "afrats-rabbitmq"
+      RabbitMq__Port: "5672"
+      RabbitMq__UserName: "${RABBITMQ_USER}"
+      RabbitMq__Password: "${RABBITMQ_PASS}"
+      Smtp__Host: "${SMTP_HOST}"
+      Smtp__Port: "${SMTP_PORT}"
+      Smtp__Username: "${SMTP_USERNAME}"
+      Smtp__Password: "${SMTP_PASSWORD}"
+      Smtp__FromEmail: "${SMTP_FROM_EMAIL}"
+      Smtp__FromName: "${SMTP_FROM_NAME}"
+    ports:
+      - "5003:8080"
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    healthcheck:
+      test: curl -f http://localhost:8080/health || exit 1
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    networks:
+      - afrats-network
+
+  afrats-gateway:
+    build:
+      context: ./services/Gateway
+      dockerfile: Dockerfile
+    container_name: afrats-gateway
+    environment:
+      ASPNETCORE_ENVIRONMENT: "Docker"
+      ASPNETCORE_URLS: "http://+:8080"
+      JwtSettings__Secret: "${JWT_SECRET}"
+      JwtSettings__Issuer: "${JWT_ISSUER}"
+      JwtSettings__Audience: "${JWT_AUDIENCE}"
+      CorsSettings__AllowedOrigins__0: "http://localhost:3000"
+      CorsSettings__AllowedOrigins__1: "http://localhost:5173"
+    ports:
+      - "5000:8080"
+    depends_on:
+      afrats-auth:
+        condition: service_started
+      afrats-txn:
+        condition: service_started
+      afrats-ml:
+        condition: service_started
+      afrats-notif:
+        condition: service_started
+    restart: "on-failure:3"
+    healthcheck:
+      test: curl -f http://localhost:8080/health || exit 1
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    networks:
+      - afrats-network
+
+volumes:
+  sqlserver_data:
+  rabbitmq_data:
+
+networks:
+  afrats-network:
+    driver: bridge

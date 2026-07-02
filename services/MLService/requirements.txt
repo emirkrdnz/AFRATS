@@ -1,0 +1,17 @@
+fastapi
+uvicorn
+pydantic
+pydantic-settings
+scikit-learn
+xgboost
+pandas
+numpy
+joblib
+sqlalchemy
+pyodbc
+pika
+requests
+python-jose
+python-dotenv
+jupyter
+imbalanced-learn

@@ -1,0 +1,3 @@
+namespace AuthService.Domain.Exceptions;
+
+public class BadRequestException(string message) : DomainException(message);
